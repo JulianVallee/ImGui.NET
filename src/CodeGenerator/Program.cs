@@ -35,14 +35,14 @@ namespace CodeGenerator
                 libraryName = "cimgui";
             }
 
-            bool skipInternals;
+            bool enableInternals;
             if (args.Length > 2)
             {
-                skipInternals = args[2].ToLower() == "true" ? true : false;
+                enableInternals = args[2].ToLower() == "true" ? true : false;
             }
             else
             {
-                skipInternals = false;
+                enableInternals = false;
             }
 
             string projectNamespace = libraryName switch
@@ -82,10 +82,14 @@ namespace CodeGenerator
             };
             
             string definitionsPath = Path.Combine(AppContext.BaseDirectory, "definitions", libraryName);
-            var defs = new ImguiDefinitions(skipInternals);
+            var defs = new ImguiDefinitions(enableInternals);
             defs.LoadFrom(definitionsPath);
 
+            Console.OutputEncoding = Encoding.UTF8;
             Console.WriteLine($"Outputting generated code files to {outputPath}.");
+            Console.WriteLine("Generate internal API: {0}", enableInternals ? "\u2713" : "\u2717");
+
+            DeleteFilesInDirectory(outputPath);
 
             foreach (EnumDefinition ed in defs.Enums)
             {
@@ -467,6 +471,22 @@ namespace CodeGenerator
 
             // Deal with troublesome lines in the generated code
             PostFixes.Apply(outputPath, libraryName);
+
+        }
+
+        private static void DeleteFilesInDirectory(string outputPath)
+        {
+            DirectoryInfo outputDirectory = new DirectoryInfo(outputPath);
+
+            foreach (FileInfo file in outputDirectory.GetFiles())
+            {
+                file.Delete();
+            }
+
+            foreach (DirectoryInfo dir in outputDirectory.GetDirectories())
+            {
+                dir.Delete(true);
+            }
 
         }
 

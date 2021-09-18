@@ -17,7 +17,7 @@ namespace CodeGenerator
 		private string _fileContent;
 
 		/// <summary>
-		/// 
+		/// Replaces or removes specific strings of the generated code.
 		/// </summary>
 		/// <param name="outputPath">The folder of the file that the PostFix targets.</param>
 		/// <param name="fileName">The name of the file that the PostFix targets.</param>
@@ -105,11 +105,28 @@ namespace CodeGenerator
 
 	}
 
+	/// <summary>
+	/// A PostFix replaces or removes specific strings of the generated code.
+	/// 
+	/// They can be used to work around small or difficult to fix issues that 
+	/// would otherwise prevent huge upgrades, like exposing the internal parts 
+	/// of a library.
+	/// 
+	///	Before adding a new PostFix you should try to find another solution, as
+	///	they are basically hackish monkey patches that can easily get out of hand.
+	/// 
+	/// </summary>
 	public class PostFixes
 	{
+		/// <summary>
+		/// Define your PostFix instances in this function. 
+		/// Automatically invoked after all code has been generated.
+		/// </summary>
+		/// <param name="outputPath">The folder of the file that the PostFix targets.</param>
+		/// <param name="libraryName">The library name that is being generated.</param>
 		public static void Apply(string outputPath, string libraryName)
 		{
-			if(libraryName == ImGuiLibraries.ImGui)
+			if(libraryName == "cimgui")
 			{
 				// Invalid default value for local variables, method
 				// `CodeGenerator.Program.CorrectDefaultValue` seems
@@ -137,17 +154,8 @@ namespace CodeGenerator
 				new PostFix(outputPath, "ImGuiViewportP.gen.cs")
 					.Replace("RangeAccessor<ImDrawList*>", "RangeAccessor<ImDrawList>")   // Error CS0306 Pointer can't be used as generic argument?
 					.Apply();
+
 			}
-
 		}
-
-		internal struct ImGuiLibraries
-		{
-			public static string ImGui = "cimgui";
-			public static string ImPlot = "cimplot";
-			public static string ImNodes = "cimnodes";
-			public static string ImGuizmo = "cimguizmo";
-		}
-
 	}
 }
