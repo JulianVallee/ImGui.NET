@@ -35,6 +35,16 @@ namespace CodeGenerator
                 libraryName = "cimgui";
             }
 
+            bool skipInternals;
+            if (args.Length > 2)
+            {
+                skipInternals = args[2].ToLower() == "true" ? true : false;
+            }
+            else
+            {
+                skipInternals = false;
+            }
+
             string projectNamespace = libraryName switch
             {
                 "cimgui" => "ImGuiNET",
@@ -72,7 +82,7 @@ namespace CodeGenerator
             };
             
             string definitionsPath = Path.Combine(AppContext.BaseDirectory, "definitions", libraryName);
-            var defs = new ImguiDefinitions();
+            var defs = new ImguiDefinitions(skipInternals);
             defs.LoadFrom(definitionsPath);
 
             Console.WriteLine($"Outputting generated code files to {outputPath}.");
@@ -185,6 +195,50 @@ namespace CodeGenerator
                                     vectorElementType = wrappedElementType;
                                 }
                                 writer.WriteLine($"public ImVector<{vectorElementType}> {field.Name} => new ImVector<{vectorElementType}>(NativePtr->{field.Name});");
+                            }
+                        }
+                        else if (typeStr.Contains("ImSpan"))
+                        {
+                            string spanElementType = GetTypeString(field.TemplateType, false);
+
+                            if (TypeInfo.WellKnownTypes.TryGetValue(spanElementType, out string wellKnown))
+                            {
+                                spanElementType = wellKnown;
+                            }
+
+                            if (GetWrappedType(spanElementType + "*", out string wrappedElementType))
+                            {
+                                writer.WriteLine($"public ImPtrSpan<{wrappedElementType}> {field.Name} => new ImPtrSpan<{wrappedElementType}>(NativePtr->{field.Name}, Unsafe.SizeOf<{spanElementType}>());");
+                            }
+                            else
+                            {
+                                if (GetWrappedType(spanElementType, out wrappedElementType))
+                                {
+                                    spanElementType = wrappedElementType;
+                                }
+                                writer.WriteLine($"public ImSpan<{spanElementType}> {field.Name} => new ImSpan<{spanElementType}>(NativePtr->{field.Name});");
+                            }
+                        }
+                        else if (typeStr.Contains("ImPool"))
+                        {
+                            string spanElementType = GetTypeString(field.TemplateType, false);
+
+                            if (TypeInfo.WellKnownTypes.TryGetValue(spanElementType, out string wellKnown))
+                            {
+                                spanElementType = wellKnown;
+                            }
+
+                            if (GetWrappedType(spanElementType + "*", out string wrappedElementType))
+                            {
+                                writer.WriteLine($"public ImPtrSpan<{wrappedElementType}> {field.Name} => new ImPtrSpan<{wrappedElementType}>(NativePtr->{field.Name}, Unsafe.SizeOf<{spanElementType}>());");
+                            }
+                            else
+                            {
+                                if (GetWrappedType(spanElementType, out wrappedElementType))
+                                {
+                                    spanElementType = wrappedElementType;
+                                }
+                                writer.WriteLine($"public ImPool<{spanElementType}> {field.Name} => new ImPool<{spanElementType}>(NativePtr->{field.Name});");
                             }
                         }
                         else
@@ -410,6 +464,10 @@ namespace CodeGenerator
                     if (!variant.Used) Console.WriteLine($"Error: Variants targetting parameter {variant.Name} with type {variant.OriginalType} could not be applied to method {method.Key}.");
                 }
             }
+
+            // Deal with troublesome lines in the generated code
+            PostFixes.Apply(outputPath, libraryName);
+
         }
 
         private static bool IsStringFieldName(string name)
@@ -547,6 +605,7 @@ namespace CodeGenerator
                     {
                         correctedDefault = defaultVal;
                     }
+
                     marshalledParameters[i] = new MarshalledParameter(nativeTypeName, false, correctedIdentifier, true);
                     preCallLines.Add($"{nativeTypeName} {correctedIdentifier} = {correctedDefault};");
                 }
@@ -617,7 +676,7 @@ namespace CodeGenerator
                     marshalledParameters[i] = new MarshalledParameter(wrappedParamType, false, nativeArgName, false);
                     preCallLines.Add($"{tr.Type} {nativeArgName} = {correctedIdentifier}.NativePtr;");
                 }
-                else if ((tr.Type.EndsWith("*") || tr.Type.Contains("[") || tr.Type.EndsWith("&")) && tr.Type != "void*" && tr.Type != "ImGuiContext*" && tr.Type != "ImPlotContext*"&& tr.Type != "EditorContext*")
+                else if ((tr.Type.EndsWith("*") || tr.Type.Contains("[") || tr.Type.EndsWith("&")) && tr.Type != "void*" && tr.Type != "ImGuiContext*" && tr.Type != "ImPlotContext*" && tr.Type != "EditorContext*" && tr.Type != "ImGuiDir*")
                 {
                     string nonPtrType;
                     if (tr.Type.Contains("["))
