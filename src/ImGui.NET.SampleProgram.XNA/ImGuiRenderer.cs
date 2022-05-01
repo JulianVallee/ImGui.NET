@@ -216,9 +216,17 @@ namespace ImGuiNET.SampleProgram.XNA
             var mouse = Mouse.GetState();
             var keyboard = Keyboard.GetState();
 
-            for (int i = 0; i < _keys.Count; i++)
+            // This implementation is WRONG, because it only handled ImGuiKey-related native key, and it didn't handle other native keys.
+            //for (int i = 0; i < _keys.Count; i++)
+            //{
+            //    io.KeysDown[_keys[i]] = keyboard.IsKeyDown((Keys)_keys[i]);
+            //}
+
+            // Here is my implementation, which works fine when you call ImGui.IsKeyPressed(uint user_key_index) API.
+            var pressedKeys = keyboard.GetPressedKeys();
+            foreach (var pressedKey in pressedKeys)
             {
-                io.KeysDown[_keys[i]] = keyboard.IsKeyDown((Keys)_keys[i]);
+                io.KeysDown[(int)pressedKey] = true;
             }
 
             io.KeyShift = keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift);
