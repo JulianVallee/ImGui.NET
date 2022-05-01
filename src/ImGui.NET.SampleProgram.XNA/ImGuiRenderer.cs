@@ -223,6 +223,14 @@ namespace ImGuiNET.SampleProgram.XNA
             //}
 
             // Here is my implementation, which works fine when you call ImGui.IsKeyPressed(uint user_key_index) API.
+
+            // Set all of the XNA native keys' state to NotKeyDown.
+            for (var key = Keys.None; key <= Keys.OemEnlW; key++)
+            {
+                io.KeysDown[(int)key] = false;
+            }
+            
+            // Set io.KeysDown[nativeKeyIndex] from XNA keyboard state.
             var pressedKeys = keyboard.GetPressedKeys();
             foreach (var pressedKey in pressedKeys)
             {
